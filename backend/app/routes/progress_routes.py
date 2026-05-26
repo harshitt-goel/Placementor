@@ -10,14 +10,14 @@ from app.utils.current_user import get_current_user
 from app.models.roadmap_model import Roadmap
 from app.models.progress_model import Progress
 
-router = APIRouter()
+router = APIRouter(prefix="/progress", tags=["Progress"])
 
 
 class TaskCompleteRequest(BaseModel):
     task_name: str
 
 
-@router.post("/complete-task")
+@router.post("/complete")
 def complete_task(
     request: TaskCompleteRequest,
     db: Session = Depends(get_db),
@@ -59,7 +59,7 @@ def complete_task(
     }
 
 
-@router.get("/progress-dashboard")
+@router.get("/dashboard")
 def progress_dashboard(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
@@ -105,4 +105,74 @@ def progress_dashboard(
         "total_tasks": total_tasks,
         "completed_tasks": completed_tasks,
         "progress_percentage": round(percentage, 2)
+    }
+
+@router.post("/uncomplete")
+def uncomplete_task(
+    request: TaskCompleteRequest,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+
+    task = db.query(Progress).filter(
+        Progress.user_id == current_user.id,
+        Progress.task_name == request.task_name
+    ).first()
+
+    if not task:
+        raise HTTPException(
+            status_code=404,
+            detail="Task not found"
+        )
+
+    task.completed = False
+
+    db.commit()
+
+    return {
+        "message": "Task marked as incomplete"
+    }
+
+@router.get("/")
+def get_progress(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    roadmap = db.query(Roadmap).filter(
+        Roadmap.user_id == current_user.id
+    ).order_by(Roadmap.id.desc()).first()
+
+    if not roadmap:
+        return None
+
+    roadmap_data = json.loads(roadmap.roadmap_data)
+
+    phases = roadmap_data.get("phases", [])
+
+    completed = db.query(Progress).filter(
+        Progress.user_id == current_user.id,
+        Progress.completed == True
+    ).all()
+
+    completed_task_names = [
+        task.task_name for task in completed
+    ]
+
+    total_tasks = 0
+
+    for phase in phases:
+        total_tasks += len(phase.get("tasks", []))
+
+    completed_tasks = len(completed_task_names)
+
+    percentage = (
+        round((completed_tasks / total_tasks) * 100)
+        if total_tasks > 0 else 0
+    )
+
+    return {
+        "completed_task_ids": completed_task_names,
+        "completed_tasks": completed_tasks,
+        "total_tasks": total_tasks,
+        "percentage": percentage
     }
