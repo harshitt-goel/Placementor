@@ -3,7 +3,13 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { getRoadmap, getProgress, completeTask, uncompleteTask } from "@/lib/api/services";
+import {
+  getRoadmap,
+  generateRoadmap,
+  getProgress,
+  completeTask,
+  uncompleteTask,
+} from "@/lib/api/services";
 import RoadmapPhase from "./RoadmapPhase";
 import TaskCheckbox from "./TaskCheckbox";
 
@@ -13,13 +19,22 @@ export default function RoadmapPage() {
 
   // Fetch roadmap structure
   const {
-    data: roadmap,
-    isLoading: loadingRoadmap,
-    error: roadmapError,
-  } = useQuery({
-    queryKey: ["roadmap"],
-    queryFn: getRoadmap,
-  });
+  data: roadmap,
+  isLoading: loadingRoadmap,
+  error: roadmapError,
+  refetch: refetchRoadmap,
+} = useQuery({
+  queryKey: ["roadmap"],
+  queryFn: getRoadmap,
+  retry: false,
+});
+
+const generateMutation = useMutation({
+  mutationFn: generateRoadmap,
+  onSuccess: () => {
+    refetchRoadmap();
+  },
+});
 
   // Fetch completed task IDs
   const { data: progress, isLoading: loadingProgress } = useQuery({
@@ -114,12 +129,13 @@ export default function RoadmapPage() {
             Set up your profile with your target role and domain, and
             we&apos;ll generate a personalized roadmap for you.
           </p>
-          <Link
-            href="/profile"
-            className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition"
-          >
-            Set up profile →
-          </Link>
+          <button
+  onClick={() => generateMutation.mutate()}
+  className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition"
+>
+  Generate roadmap →
+</button>
+        
         </div>
       </div>
     );
