@@ -204,6 +204,12 @@ export default function ProfilePage() {
         </div>
       )}
 
+      <div className="bg-red-900 text-white p-3 rounded mb-4">
+        <div>Role: {profile?.target_role}</div>
+        <div>Domain: {profile?.domain}</div>
+        <div>Level: {profile?.current_level}</div>
+      </div>
+
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         {/* Card: Placement goals */}
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-4">
