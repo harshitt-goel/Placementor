@@ -65,6 +65,9 @@ def generate_feedback(
     Also provide a score out of 100.
     """
 
-    response = model.generate_content(prompt)
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt
+    )
 
     return response.text
