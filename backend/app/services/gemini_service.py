@@ -1,6 +1,7 @@
 from google import genai
 from dotenv import load_dotenv
 import os
+import json
 
 load_dotenv()
 
@@ -56,31 +57,45 @@ def generate_feedback(
     questions,
     answers
 ):
-
     prompt = f"""
     You are an expert technical interviewer.
 
-    Interview Questions:
+    Questions:
     {questions}
 
     Candidate Answers:
     {answers}
 
-    Evaluate the candidate.
+    Evaluate EACH answer separately.
 
-    Provide:
-    - strengths
-    - weaknesses
-    - technical evaluation
-    - communication evaluation
-    - improvement suggestions
+    Return ONLY valid JSON.
 
-    Also provide a score out of 100.
+    {{
+    "overall_score": 0,
+    "items": [
+        {{
+        "question_id": "q1",
+        "score": 85,
+        "feedback": "Good understanding of the concept."
+        }}
+    ]
+    }}
+
+    Rules:
+    - overall_score must be between 0 and 100
+    - score for each question must be between 0 and 100
+    - give short but useful feedback
+    - return JSON only
     """
 
     response = client.models.generate_content(
         model="gemini-2.5-flash",
         contents=prompt
     )
+    text = response.text.strip()
 
-    return response.text
+    if text.startswith("```json"):
+        text = text.replace("```json", "").replace("```", "").strip()
+
+    return json.loads(text)
+

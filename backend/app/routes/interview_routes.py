@@ -18,7 +18,7 @@ router = APIRouter(
 
 
 def parse_questions(text: str):
-    lines = []
+    questions = []
 
     for line in text.split("\n"):
         line = line.strip()
@@ -26,18 +26,24 @@ def parse_questions(text: str):
         if not line:
             continue
 
-        if line[0].isdigit():
-            parts = line.split(".", 1)
-            if len(parts) == 2:
-                line = parts[1].strip()
+        if not (
+            line.startswith("1.")
+            or line.startswith("2.")
+            or line.startswith("3.")
+            or line.startswith("4.")
+            or line.startswith("5.")
+            or line.startswith("6.")
+            or line.startswith("7.")
+            or line.startswith("8.")
+            or line.startswith("9.")
+            or line.startswith("10.")
+        ):
+            continue
 
-        lines.append(line)
+        q = line.split(".", 1)[1].strip()
 
-    questions = []
-
-    for i, q in enumerate(lines):
         questions.append({
-            "id": f"q{i + 1}",
+            "id": f"q{len(questions)+1}",
             "question": q
         })
 
@@ -104,13 +110,13 @@ def get_interviews(
 
     result = []
 
-    for i in interviews:
+    for interview in interviews:
         result.append({
-            "id": i.id,
-            "role": i.role,
-            "questions": json.loads(i.questions),
-            "submitted": i.answers is not None,
-            "created_at": str(i.id)
+            "id": interview.id,
+            "role": interview.role,
+            "questions": json.loads(interview.questions),
+            "submitted": interview.answers is not None,
+            "created_at": str(interview.id)
         })
 
     return result
@@ -168,18 +174,18 @@ def submit_interview(
         ]
     )
 
-    feedback = generate_feedback(
+    feedback_data = generate_feedback(
         interview.questions,
         answer_text
     )
 
     interview.answers = json.dumps(answers)
-    interview.feedback = feedback
+    interview.feedback = json.dumps(feedback_data)
 
     db.commit()
 
     return {
-        "message": "Submitted"
+        "message": "Submitted successfully"
     }
 
 
@@ -208,20 +214,50 @@ def get_feedback(
         else []
     )
 
+    feedback_data = (
+        json.loads(interview.feedback)
+        if interview.feedback
+        else {
+            "overall_score": 0,
+            "items": []
+        }
+    )
+
+    gemini_items = {
+        item["question_id"]: item
+        for item in feedback_data.get("items", [])
+    }
+
     items = []
 
     for idx, q in enumerate(questions):
-        answer = answers[idx]["answer"] if idx < len(answers) else ""
+
+        answer = (
+            answers[idx]["answer"]
+            if idx < len(answers)
+            else ""
+        )
+
+        gemini_feedback = gemini_items.get(
+            q["id"],
+            {}
+        )
 
         items.append({
             "question_id": q["id"],
             "question": q["question"],
             "answer": answer,
-            "score": 70,
-            "feedback": interview.feedback or "Feedback generated."
+            "score": gemini_feedback.get("score", 0),
+            "feedback": gemini_feedback.get(
+                "feedback",
+                "No feedback available."
+            )
         })
 
     return {
-        "overall_score": 70,
+        "overall_score": feedback_data.get(
+            "overall_score",
+            0
+        ),
         "items": items
     }
