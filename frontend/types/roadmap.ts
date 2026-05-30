@@ -16,4 +16,6 @@ export interface Roadmap {
   id: string;
   role: string;
   phases: Phase[];
+  needs_regeneration?: boolean;
+  current_profile_role?: string;
 }

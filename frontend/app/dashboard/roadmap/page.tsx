@@ -32,8 +32,20 @@ export default function RoadmapPage() {
 const generateMutation = useMutation({
   mutationFn: generateRoadmap,
   onSuccess: () => {
-    refetchRoadmap();
-  },
+  queryClient.invalidateQueries({
+    queryKey: ["roadmap"],
+  });
+
+  queryClient.invalidateQueries({
+    queryKey: ["progress"],
+  });
+
+  queryClient.invalidateQueries({
+    queryKey: ["dashboard"],
+  });
+
+  refetchRoadmap();
+},
 });
 
   // Fetch completed task IDs
@@ -156,6 +168,27 @@ const generateMutation = useMutation({
           {roadmap.role} — {roadmap.phases.length} phases · {totalTasks} tasks
         </p>
       </div>
+
+      {roadmap.needs_regeneration && (
+  <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
+    <p className="text-amber-400 text-sm font-medium">
+      Roadmap out of sync
+    </p>
+
+    <p className="text-gray-400 text-sm mt-1">
+      Current roadmap: {roadmap.role}
+      <br />
+      Profile role: {roadmap.current_profile_role}
+    </p>
+
+    <button
+      onClick={() => generateMutation.mutate()}
+      className="mt-3 bg-amber-500 hover:bg-amber-400 text-black text-sm font-medium px-4 py-2 rounded-lg transition"
+    >
+      Generate New Roadmap
+    </button>
+  </div>
+)}
 
       {/* Overall progress bar */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
