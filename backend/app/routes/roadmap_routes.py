@@ -46,7 +46,9 @@ def format_roadmap(data):
 
     return {
         "role": data.get("role", ""),
-        "phases": formatted_phases
+        "phases": formatted_phases,
+        "needs_regeneration": False,
+        "current_profile_role": data.get("role", "")
     }
 
 
@@ -70,9 +72,23 @@ def get_roadmap(
         roadmap.roadmap_data
     )
 
-    return format_roadmap(
+    formatted = format_roadmap(
         roadmap_data
     )
+
+    profile = db.query(Profile).filter(
+        Profile.user_id == current_user.id
+    ).order_by(Profile.id.desc()).first()
+
+    if profile:
+        formatted["current_profile_role"] = profile.target_role
+
+        formatted["needs_regeneration"] = (
+            roadmap.role.strip().lower()
+            != profile.target_role.strip().lower()
+        )
+
+    return formatted
 
 
 @router.post("/generate")
@@ -94,8 +110,12 @@ def generate_roadmap(
     role = profile.target_role.strip().lower()
 
     roadmap_files = {
-        "backend developer": "app/roadmaps/backend_developer.json",
-    }
+        "backend developer":
+            "app/roadmaps/backend_developer.json",
+
+        "software development engineer (sde)":
+            "app/roadmaps/sde.json",
+    }   
 
     if role not in roadmap_files:
         raise HTTPException(
