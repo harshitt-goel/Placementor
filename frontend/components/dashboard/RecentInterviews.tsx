@@ -54,7 +54,7 @@ export default function RecentInterviews() {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-medium text-white">Recent interviews</h3>
         <Link
-          href="/interview"
+          href="/dashboard/interview"
           className="text-xs text-blue-400 hover:text-blue-300 transition"
         >
           View all →
@@ -65,7 +65,7 @@ export default function RecentInterviews() {
         <div className="text-center py-6">
           <p className="text-gray-500 text-sm mb-3">No interviews yet</p>
           <Link
-            href="/interview"
+            href="/dashboard/interview"
             className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium px-4 py-2 rounded-lg transition"
           >
             Start your first interview

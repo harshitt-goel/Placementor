@@ -126,7 +126,7 @@ export default function InterviewPage() {
         {!profile && (
           <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs rounded-lg px-4 py-2.5">
             Set up your{" "}
-            <Link href="/profile" className="underline underline-offset-2">
+            <Link href="/dashboard/profile" className="underline underline-offset-2">
               profile
             </Link>{" "}
             first for the best AI questions.

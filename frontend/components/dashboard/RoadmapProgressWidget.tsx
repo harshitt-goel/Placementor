@@ -34,7 +34,7 @@ export default function RoadmapProgressWidget() {
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
         <p className="text-gray-500 text-sm">
           No roadmap yet.{" "}
-          <Link href="/profile" className="text-blue-400 hover:underline">
+          <Link href="/dashboard/profile" className="text-blue-400 hover:underline">
             Set up your profile
           </Link>{" "}
           to generate one.

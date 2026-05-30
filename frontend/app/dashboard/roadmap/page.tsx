@@ -281,7 +281,7 @@ const generateMutation = useMutation({
             You&apos;ve finished all phases. Time to ace those interviews.
           </p>
           <Link
-            href="/interview"
+            href="/dashboard/interview"
             className="bg-green-500 hover:bg-green-400 text-gray-950 font-semibold text-sm px-6 py-2.5 rounded-lg transition"
           >
             Start final interview practice →
