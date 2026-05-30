@@ -90,11 +90,11 @@ export default function Sidebar() {
       <div className="px-4 py-4 border-t border-gray-800/60">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-            {user?.username?.charAt(0).toUpperCase() ?? "U"}
+            {user?.email?.charAt(0).toUpperCase() ?? "U"}
           </div>
           <div className="min-w-0">
             <p className="text-white text-sm font-medium truncate">
-              {user?.username ?? "User"}
+              {user?.email ?? "User"}
             </p>
             <p className="text-gray-500 text-xs truncate">
               {user?.email ?? ""}
