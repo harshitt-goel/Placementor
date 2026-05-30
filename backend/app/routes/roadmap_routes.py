@@ -8,6 +8,7 @@ from app.utils.current_user import get_current_user
 
 from app.models.profile_model import Profile
 from app.models.roadmap_model import Roadmap
+from app.models.progress_model import Progress
 
 router = APIRouter(
     prefix="/roadmap",
@@ -131,11 +132,14 @@ def generate_roadmap(
         roadmap_json = json.load(file)
 
     existing = db.query(Roadmap).filter(
-        Roadmap.user_id == current_user.id
+    Roadmap.user_id == current_user.id
     ).first()
 
     if existing:
         db.delete(existing)
+        db.query(Progress).filter(
+            Progress.user_id == current_user.id
+        ).delete()
         db.commit()
 
     new_roadmap = Roadmap(
