@@ -115,6 +115,7 @@ def get_interviews(
             "id": interview.id,
             "role": interview.role,
             "questions": json.loads(interview.questions),
+            "status": interview.status,
             "submitted": interview.answers is not None,
             "created_at": str(interview.id)
         })
@@ -143,6 +144,7 @@ def get_interview(
         "id": interview.id,
         "role": interview.role,
         "questions": json.loads(interview.questions),
+        "status": interview.status,
         "submitted": interview.answers is not None
     }
 

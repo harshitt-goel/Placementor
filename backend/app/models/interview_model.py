@@ -22,6 +22,10 @@ class Interview(Base):
     role = Column(String)
 
     questions = Column(Text)
+    status = Column(
+        String,
+        default="COMPLETED"
+    )
     answers = Column(Text, nullable=True)
     feedback = Column(Text, nullable=True)
     score = Column(Integer, nullable=True)
