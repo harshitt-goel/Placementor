@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 import json
 
@@ -50,6 +50,7 @@ def parse_questions(text: str):
 @router.post("/generate")
 def generate_interview(
     payload: dict,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
@@ -82,8 +83,8 @@ def generate_interview(
     db.commit()
     db.refresh(interview)
 
-    # Dispatch Celery task
-    generate_questions_task.delay(interview.id, resume.extracted_text, role)
+    # Dispatch Background Task
+    background_tasks.add_task(generate_questions_task, interview.id, resume.extracted_text, role)
 
     return {
         "id": interview.id,
@@ -148,6 +149,7 @@ def get_interview(
 def submit_interview(
     interview_id: int,
     payload: dict,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
@@ -176,8 +178,9 @@ def submit_interview(
     interview.status = "FEEDBACK_PROCESSING"
     db.commit()
 
-    # Dispatch Celery task
-    generate_feedback_task.delay(
+    # Dispatch Background Task
+    background_tasks.add_task(
+        generate_feedback_task,
         interview.id,
         interview.questions,
         answer_text,

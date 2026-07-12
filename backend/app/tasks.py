@@ -1,5 +1,4 @@
 import json
-from app.celery_app import celery_app
 from app.database.db import SessionLocal
 from app.models.user_model import User
 from app.models.interview_model import Interview
@@ -28,7 +27,6 @@ def parse_questions(text: str):
         })
     return questions
 
-@celery_app.task(name="generate_questions_task")
 def generate_questions_task(interview_id: int, resume_text: str, role: str):
     db = SessionLocal()
     try:
@@ -50,7 +48,6 @@ def generate_questions_task(interview_id: int, resume_text: str, role: str):
     finally:
         db.close()
 
-@celery_app.task(name="generate_feedback_task")
 def generate_feedback_task(interview_id: int, questions_json: str, answer_text: str, answers_json: str):
     db = SessionLocal()
     try:
