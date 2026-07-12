@@ -50,8 +50,8 @@ export default function FeedbackPage() {
     queryKey: ["interview-feedback", id],
     queryFn: () => getInterviewFeedback(id),
     enabled: !!id,
-    refetchInterval: (query) => {
-      return query.state.data?.status === "FEEDBACK_PROCESSING" ? 2000 : false;
+    refetchInterval: () => {
+      return feedback?.status === "FEEDBACK_PROCESSING" ? 2000 : false;
     },
   });
 

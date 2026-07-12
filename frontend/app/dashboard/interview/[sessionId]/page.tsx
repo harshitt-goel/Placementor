@@ -19,8 +19,8 @@ export default function InterviewSessionPage() {
     queryKey: ["interview-session", id],
     queryFn: () => getInterviewSession(id),
     enabled: !!id,
-    refetchInterval: (query) => {
-      return query.state.data?.status === "PROCESSING" ? 2000 : false;
+    refetchInterval: () => {
+      return session?.status === "PROCESSING" ? 2000 : false;
     },
   });
 
