@@ -6,10 +6,7 @@ from app.database.dependencies import get_db
 from app.utils.current_user import get_current_user
 from app.models.resume_model import Resume
 from app.models.interview_model import Interview
-from app.services.gemini_service import (
-    generate_interview_questions,
-    generate_feedback
-)
+from app.tasks import generate_questions_task, generate_feedback_task
 
 router = APIRouter(
     prefix="/interviews",
@@ -74,27 +71,25 @@ def generate_interview(
             detail="Resume not found"
         )
 
-    raw_questions = generate_interview_questions(
-        resume.extracted_text,
-        role
-    )
-
-    questions = parse_questions(raw_questions)
-
     interview = Interview(
         user_id=current_user.id,
         role=role,
-        questions=json.dumps(questions)
+        questions=json.dumps([]),
+        status="PROCESSING"
     )
 
     db.add(interview)
     db.commit()
     db.refresh(interview)
 
+    # Dispatch Celery task
+    generate_questions_task.delay(interview.id, resume.extracted_text, role)
+
     return {
         "id": interview.id,
         "role": interview.role,
-        "questions": questions,
+        "questions": [],
+        "status": interview.status,
         "submitted": False
     }
 
@@ -176,15 +171,18 @@ def submit_interview(
         ]
     )
 
-    feedback_data = generate_feedback(
-        interview.questions,
-        answer_text
-    )
-
+    # Save answers immediately and change status to feedback processing
     interview.answers = json.dumps(answers)
-    interview.feedback = json.dumps(feedback_data)
-
+    interview.status = "FEEDBACK_PROCESSING"
     db.commit()
+
+    # Dispatch Celery task
+    generate_feedback_task.delay(
+        interview.id,
+        interview.questions,
+        answer_text,
+        json.dumps(answers)
+    )
 
     return {
         "message": "Submitted successfully"
@@ -261,5 +259,6 @@ def get_feedback(
             "overall_score",
             0
         ),
+        "status": interview.status,
         "items": items
     }

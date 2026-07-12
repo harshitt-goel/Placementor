@@ -19,6 +19,9 @@ export default function InterviewSessionPage() {
     queryKey: ["interview-session", id],
     queryFn: () => getInterviewSession(id),
     enabled: !!id,
+    refetchInterval: (query) => {
+      return query.state.data?.status === "PROCESSING" ? 2000 : false;
+    },
   });
 
   // If already submitted, redirect to feedback
@@ -83,6 +86,20 @@ export default function InterviewSessionPage() {
     return (
       <div className="max-w-3xl mx-auto text-center py-16">
         <p className="text-gray-400">Session not found.</p>
+      </div>
+    );
+  }
+
+  if (session.status === "PROCESSING") {
+    return (
+      <div className="max-w-3xl mx-auto text-center py-20 space-y-6">
+        <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto" />
+        <div className="space-y-2">
+          <h2 className="text-xl font-semibold text-white">Generating Interview Questions</h2>
+          <p className="text-gray-400 text-sm max-w-md mx-auto">
+            Gemini is analyzing your resume for the <span className="text-blue-400 font-medium">{session.role}</span> role. This usually takes 10–20 seconds.
+          </p>
+        </div>
       </div>
     );
   }
