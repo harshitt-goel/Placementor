@@ -19,8 +19,8 @@ export default function InterviewSessionPage() {
     queryKey: ["interview-session", id],
     queryFn: () => getInterviewSession(id),
     enabled: !!id,
-    refetchInterval: () => {
-      return session?.status === "PROCESSING" ? 2000 : false;
+    refetchInterval: (query: any) => {
+      return query?.state?.data?.status === "PROCESSING" ? 2000 : false;
     },
   });
 
@@ -90,7 +90,7 @@ export default function InterviewSessionPage() {
     );
   }
 
-  if (session.status === "PROCESSING") {
+  if ((session as any).status === "PROCESSING") {
     return (
       <div className="max-w-3xl mx-auto text-center py-20 space-y-6">
         <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto" />

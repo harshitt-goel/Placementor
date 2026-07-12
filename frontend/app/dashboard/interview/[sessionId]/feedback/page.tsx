@@ -50,8 +50,8 @@ export default function FeedbackPage() {
     queryKey: ["interview-feedback", id],
     queryFn: () => getInterviewFeedback(id),
     enabled: !!id,
-    refetchInterval: () => {
-      return feedback?.status === "FEEDBACK_PROCESSING" ? 2000 : false;
+    refetchInterval: (query: any) => {
+      return query?.state?.data?.status === "FEEDBACK_PROCESSING" ? 2000 : false;
     },
   });
 
@@ -78,7 +78,7 @@ export default function FeedbackPage() {
     );
   }
 
-  if (feedback.status === "FEEDBACK_PROCESSING") {
+  if ((feedback as any).status === "FEEDBACK_PROCESSING") {
     return (
       <div className="max-w-3xl mx-auto text-center py-20 space-y-6">
         <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto" />
