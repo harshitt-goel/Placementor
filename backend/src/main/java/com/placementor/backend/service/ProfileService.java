@@ -5,9 +5,7 @@ import com.placementor.backend.entity.Profile;
 import com.placementor.backend.repository.ProfileRepository;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class ProfileService {
@@ -20,37 +18,30 @@ public class ProfileService {
 
     @Cacheable(value = "profiles", key = "#userId")
     public ProfileDto getProfile(Long userId) {
-        Profile profile = profileRepository.findTopByUserIdOrderByIdDesc(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profile not found"));
-
+        Profile profile = profileRepository.findTopByUserIdOrderByIdDesc(userId).orElse(null);
+        if (profile == null) {
+            return null;
+        }
         return mapToDto(profile);
     }
 
     @CacheEvict(value = "profiles", key = "#userId")
     public ProfileDto createProfile(Long userId, ProfileDto dto) {
-        if (profileRepository.findByUserId(userId).isPresent()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Profile already exists");
-        }
-
-        Profile profile = Profile.builder()
-                .userId(userId)
-                .targetRole(dto.getTargetRole())
-                .domain(dto.getDomain())
-                .currentLevel(dto.getCurrentLevel())
-                .githubUrl(dto.getGithubUrl())
-                .leetcodeUrl(dto.getLeetcodeUrl())
-                .codeforcesUrl(dto.getCodeforcesUrl())
-                .targetCompany(dto.getTargetCompany())
-                .build();
-
-        Profile saved = profileRepository.save(profile);
-        return mapToDto(saved);
+        return saveOrUpdateProfile(userId, dto);
     }
 
     @CacheEvict(value = "profiles", key = "#userId")
     public ProfileDto updateProfile(Long userId, ProfileDto dto) {
-        Profile profile = profileRepository.findTopByUserIdOrderByIdDesc(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profile not found"));
+        return saveOrUpdateProfile(userId, dto);
+    }
+
+    private ProfileDto saveOrUpdateProfile(Long userId, ProfileDto dto) {
+        Profile profile = profileRepository.findTopByUserIdOrderByIdDesc(userId).orElse(null);
+        if (profile == null) {
+            profile = Profile.builder()
+                    .userId(userId)
+                    .build();
+        }
 
         profile.setTargetRole(dto.getTargetRole());
         profile.setDomain(dto.getDomain());
@@ -60,8 +51,8 @@ public class ProfileService {
         profile.setCodeforcesUrl(dto.getCodeforcesUrl());
         profile.setTargetCompany(dto.getTargetCompany());
 
-        Profile updated = profileRepository.save(profile);
-        return mapToDto(updated);
+        Profile saved = profileRepository.save(profile);
+        return mapToDto(saved);
     }
 
     private ProfileDto mapToDto(Profile profile) {
