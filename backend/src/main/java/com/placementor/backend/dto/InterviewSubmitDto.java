@@ -1,8 +1,11 @@
 package com.placementor.backend.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import java.util.List;
 
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class InterviewSubmitDto {
     private List<AnswerItem> answers;
 
@@ -26,6 +29,7 @@ public class InterviewSubmitDto {
         public InterviewSubmitDto build() { return new InterviewSubmitDto(answers); }
     }
 
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public static class AnswerItem {
         @JsonProperty("question_id")
         private String questionId;
@@ -42,8 +46,11 @@ public class InterviewSubmitDto {
             return new AnswerItemBuilder();
         }
 
+        @JsonProperty("question_id")
         public String getQuestionId() { return questionId; }
+        @JsonProperty("question_id")
         public void setQuestionId(String questionId) { this.questionId = questionId; }
+
         public String getAnswer() { return answer; }
         public void setAnswer(String answer) { this.answer = answer; }
 

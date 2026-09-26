@@ -1,8 +1,11 @@
 package com.placementor.backend.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import java.util.List;
 
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class InterviewFeedbackDto {
     @JsonProperty("overall_score")
     private Integer overallScore;
@@ -23,8 +26,11 @@ public class InterviewFeedbackDto {
         return new InterviewFeedbackDtoBuilder();
     }
 
+    @JsonProperty("overall_score")
     public Integer getOverallScore() { return overallScore; }
+    @JsonProperty("overall_score")
     public void setOverallScore(Integer overallScore) { this.overallScore = overallScore; }
+
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public List<FeedbackItemDto> getItems() { return items; }

@@ -109,13 +109,13 @@ export default function ProfilePage() {
 
     values: profile
       ? {
-          target_role: profile.target_role ?? "",
+          target_role: profile.target_role ?? profile.targetRole ?? "",
           domain: profile.domain ?? "",
-          current_level: profile.current_level ?? "",
-          target_company: profile.target_company ?? "",
-          github_url: profile.github_url ?? "",
-          leetcode_url: profile.leetcode_url ?? "",
-          codeforces_url: profile.codeforces_url ?? "",
+          current_level: profile.current_level ?? profile.currentLevel ?? "",
+          target_company: profile.target_company ?? profile.targetCompany ?? "",
+          github_url: profile.github_url ?? profile.githubUrl ?? "",
+          leetcode_url: profile.leetcode_url ?? profile.leetcodeUrl ?? "",
+          codeforces_url: profile.codeforces_url ?? profile.codeforcesUrl ?? "",
         }
       : undefined,
   });

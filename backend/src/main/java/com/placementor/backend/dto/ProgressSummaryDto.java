@@ -1,8 +1,11 @@
 package com.placementor.backend.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import java.util.List;
 
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class ProgressSummaryDto {
     @JsonProperty("completed_task_ids")
     private List<String> completedTaskIds;
@@ -28,12 +31,21 @@ public class ProgressSummaryDto {
         return new ProgressSummaryDtoBuilder();
     }
 
+    @JsonProperty("completed_task_ids")
     public List<String> getCompletedTaskIds() { return completedTaskIds; }
+    @JsonProperty("completed_task_ids")
     public void setCompletedTaskIds(List<String> completedTaskIds) { this.completedTaskIds = completedTaskIds; }
+
+    @JsonProperty("completed_tasks")
     public Integer getCompletedTasks() { return completedTasks; }
+    @JsonProperty("completed_tasks")
     public void setCompletedTasks(Integer completedTasks) { this.completedTasks = completedTasks; }
+
+    @JsonProperty("total_tasks")
     public Integer getTotalTasks() { return totalTasks; }
+    @JsonProperty("total_tasks")
     public void setTotalTasks(Integer totalTasks) { this.totalTasks = totalTasks; }
+
     public Integer getPercentage() { return percentage; }
     public void setPercentage(Integer percentage) { this.percentage = percentage; }
 

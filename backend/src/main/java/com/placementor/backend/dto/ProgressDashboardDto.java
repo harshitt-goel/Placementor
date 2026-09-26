@@ -1,7 +1,10 @@
 package com.placementor.backend.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class ProgressDashboardDto {
     private String role;
 
@@ -29,11 +32,20 @@ public class ProgressDashboardDto {
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+
+    @JsonProperty("total_tasks")
     public Integer getTotalTasks() { return totalTasks; }
+    @JsonProperty("total_tasks")
     public void setTotalTasks(Integer totalTasks) { this.totalTasks = totalTasks; }
+
+    @JsonProperty("completed_tasks")
     public Integer getCompletedTasks() { return completedTasks; }
+    @JsonProperty("completed_tasks")
     public void setCompletedTasks(Integer completedTasks) { this.completedTasks = completedTasks; }
+
+    @JsonProperty("progress_percentage")
     public Double getProgressPercentage() { return progressPercentage; }
+    @JsonProperty("progress_percentage")
     public void setProgressPercentage(Double progressPercentage) { this.progressPercentage = progressPercentage; }
 
     public static class ProgressDashboardDtoBuilder {

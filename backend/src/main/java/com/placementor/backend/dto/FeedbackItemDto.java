@@ -1,7 +1,10 @@
 package com.placementor.backend.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class FeedbackItemDto {
     @JsonProperty("question_id")
     private String questionId;
@@ -24,8 +27,11 @@ public class FeedbackItemDto {
         return new FeedbackItemDtoBuilder();
     }
 
+    @JsonProperty("question_id")
     public String getQuestionId() { return questionId; }
+    @JsonProperty("question_id")
     public void setQuestionId(String questionId) { this.questionId = questionId; }
+
     public String getQuestion() { return question; }
     public void setQuestion(String question) { this.question = question; }
     public String getAnswer() { return answer; }

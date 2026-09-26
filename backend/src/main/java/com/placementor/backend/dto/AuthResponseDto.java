@@ -1,7 +1,10 @@
 package com.placementor.backend.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class AuthResponseDto {
     private UserResponseDto user;
 
@@ -25,9 +28,15 @@ public class AuthResponseDto {
 
     public UserResponseDto getUser() { return user; }
     public void setUser(UserResponseDto user) { this.user = user; }
+
+    @JsonProperty("access_token")
     public String getAccessToken() { return accessToken; }
+    @JsonProperty("access_token")
     public void setAccessToken(String accessToken) { this.accessToken = accessToken; }
+
+    @JsonProperty("token_type")
     public String getTokenType() { return tokenType; }
+    @JsonProperty("token_type")
     public void setTokenType(String tokenType) { this.tokenType = tokenType; }
 
     public static class AuthResponseDtoBuilder {

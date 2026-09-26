@@ -1,9 +1,12 @@
 package com.placementor.backend.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import java.util.List;
 import java.util.Map;
 
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class InterviewResponseDto {
     private Long id;
     private String role;
@@ -39,7 +42,10 @@ public class InterviewResponseDto {
     public void setStatus(String status) { this.status = status; }
     public Boolean getSubmitted() { return submitted; }
     public void setSubmitted(Boolean submitted) { this.submitted = submitted; }
+
+    @JsonProperty("created_at")
     public String getCreatedAt() { return createdAt; }
+    @JsonProperty("created_at")
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
 
     public static class InterviewResponseDtoBuilder {
