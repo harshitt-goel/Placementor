@@ -46,8 +46,19 @@ public class RoadmapService {
 
     @Cacheable(value = "roadmaps", key = "#userId", unless = "#result == null")
     public Map<String, Object> getRoadmap(Long userId) {
-        Roadmap roadmap = roadmapRepository.findTopByUserIdOrderByIdDesc(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Roadmap not found"));
+        Roadmap roadmap = roadmapRepository.findTopByUserIdOrderByIdDesc(userId).orElse(null);
+
+        if (roadmap == null) {
+            Profile profile = profileRepository.findTopByUserIdOrderByIdDesc(userId).orElse(null);
+            if (profile != null && profile.getTargetRole() != null && !profile.getTargetRole().isBlank()) {
+                try {
+                    return generateRoadmap(userId);
+                } catch (Exception e) {
+                    log.error("Auto generation of roadmap in getRoadmap failed for userId {}", userId, e);
+                }
+            }
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Roadmap not found");
+        }
 
         try {
             Map<String, Object> roadmapData = objectMapper.readValue(roadmap.getRoadmapData(), new TypeReference<>() {});
@@ -72,15 +83,14 @@ public class RoadmapService {
         Profile profile = profileRepository.findTopByUserIdOrderByIdDesc(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profile not found"));
 
-        String role = profile.getTargetRole().trim().toLowerCase();
+        String rawRole = profile.getTargetRole() != null ? profile.getTargetRole().trim() : "Software Development Engineer (SDE)";
+        String roleLower = rawRole.toLowerCase();
         String resourcePath;
 
-        if (role.equals("backend developer")) {
+        if (roleLower.contains("backend")) {
             resourcePath = "roadmaps/backend_developer.json";
-        } else if (role.equals("software development engineer (sde)")) {
-            resourcePath = "roadmaps/sde.json";
         } else {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Roadmap not available for role: " + profile.getTargetRole());
+            resourcePath = "roadmaps/sde.json";
         }
 
         try {
@@ -88,13 +98,15 @@ public class RoadmapService {
             InputStream inputStream = resource.getInputStream();
             Map<String, Object> roadmapJson = objectMapper.readValue(inputStream, new TypeReference<>() {});
 
+            roadmapJson.put("role", rawRole);
+
             roadmapRepository.deleteByUserId(userId);
             progressRepository.deleteByUserId(userId);
 
             String jsonString = objectMapper.writeValueAsString(roadmapJson);
             Roadmap newRoadmap = Roadmap.builder()
                     .userId(userId)
-                    .role(profile.getTargetRole())
+                    .role(rawRole)
                     .roadmapData(jsonString)
                     .build();
 
@@ -106,8 +118,8 @@ public class RoadmapService {
 
             return formatRoadmap(roadmapJson);
         } catch (Exception e) {
-            log.error("Error reading or saving roadmap resource", e);
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to generate roadmap");
+            log.error("Error reading or saving roadmap resource for userId {}", userId, e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to generate roadmap: " + e.getMessage());
         }
     }
 

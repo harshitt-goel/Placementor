@@ -5,6 +5,7 @@ import com.placementor.backend.entity.Profile;
 import com.placementor.backend.repository.ProfileRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -13,9 +14,11 @@ public class ProfileService {
     private static final Logger log = LoggerFactory.getLogger(ProfileService.class);
 
     private final ProfileRepository profileRepository;
+    private final RoadmapService roadmapService;
 
-    public ProfileService(ProfileRepository profileRepository) {
+    public ProfileService(ProfileRepository profileRepository, @Lazy RoadmapService roadmapService) {
         this.profileRepository = profileRepository;
+        this.roadmapService = roadmapService;
     }
 
     public ProfileDto getProfile(Long userId) {
@@ -40,6 +43,9 @@ public class ProfileService {
     private ProfileDto saveOrUpdateProfile(Long userId, ProfileDto dto) {
         log.info("Saving/Updating profile for userId: {}, role={}, domain={}", userId, dto.getTargetRole(), dto.getDomain());
         Profile profile = profileRepository.findTopByUserIdOrderByIdDesc(userId).orElse(null);
+        boolean isNew = (profile == null);
+        String oldRole = profile != null ? profile.getTargetRole() : null;
+
         if (profile == null) {
             profile = Profile.builder()
                     .userId(userId)
@@ -56,6 +62,15 @@ public class ProfileService {
 
         Profile saved = profileRepository.save(profile);
         log.info("Successfully saved profile id {} for userId {}", saved.getId(), userId);
+
+        if (isNew || oldRole == null || !oldRole.equalsIgnoreCase(saved.getTargetRole())) {
+            try {
+                log.info("Triggering roadmap auto-generation for userId {}", userId);
+                roadmapService.generateRoadmap(userId);
+            } catch (Exception e) {
+                log.error("Failed to auto-generate roadmap for user {}", userId, e);
+            }
+        }
 
         return mapToDto(saved);
     }
