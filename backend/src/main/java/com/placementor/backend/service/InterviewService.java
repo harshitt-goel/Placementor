@@ -10,11 +10,14 @@ import com.placementor.backend.repository.InterviewRepository;
 import com.placementor.backend.repository.ResumeRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class InterviewService {
@@ -24,12 +27,21 @@ public class InterviewService {
     private final InterviewRepository interviewRepository;
     private final ResumeRepository resumeRepository;
     private final KafkaProducerService kafkaProducerService;
+    private final GeminiService geminiService;
     private final ObjectMapper objectMapper;
 
-    public InterviewService(InterviewRepository interviewRepository, ResumeRepository resumeRepository, KafkaProducerService kafkaProducerService, ObjectMapper objectMapper) {
+    @Value("${kafka.enabled:true}")
+    private boolean kafkaEnabled;
+
+    public InterviewService(InterviewRepository interviewRepository,
+                            ResumeRepository resumeRepository,
+                            @Autowired(required = false) KafkaProducerService kafkaProducerService,
+                            GeminiService geminiService,
+                            ObjectMapper objectMapper) {
         this.interviewRepository = interviewRepository;
         this.resumeRepository = resumeRepository;
         this.kafkaProducerService = kafkaProducerService;
+        this.geminiService = geminiService;
         this.objectMapper = objectMapper;
     }
 
@@ -51,14 +63,40 @@ public class InterviewService {
 
             interview = interviewRepository.save(interview);
 
-            // Publish Kafka event for asynchronous question generation
-            InterviewQuestionEvent event = InterviewQuestionEvent.builder()
-                    .interviewId(interview.getId())
-                    .resumeText(resume.getExtractedText())
-                    .role(role)
-                    .build();
+            if (kafkaEnabled && kafkaProducerService != null) {
+                // Publish Kafka event for asynchronous question generation
+                InterviewQuestionEvent event = InterviewQuestionEvent.builder()
+                        .interviewId(interview.getId())
+                        .resumeText(resume.getExtractedText())
+                        .role(role)
+                        .build();
 
-            kafkaProducerService.sendInterviewQuestionEvent(event);
+                kafkaProducerService.sendInterviewQuestionEvent(event);
+            } else {
+                // Async fallback if Kafka is not active
+                final Long finalInterviewId = interview.getId();
+                final String resumeText = resume.getExtractedText();
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        String rawQuestions = geminiService.generateInterviewQuestions(resumeText, role);
+                        List<Map<String, String>> parsed = parseQuestionsFromText(rawQuestions);
+                        String questionsJson = objectMapper.writeValueAsString(parsed);
+                        Interview inv = interviewRepository.findById(finalInterviewId).orElse(null);
+                        if (inv != null) {
+                            inv.setQuestions(questionsJson);
+                            inv.setStatus("COMPLETED");
+                            interviewRepository.save(inv);
+                        }
+                    } catch (Exception e) {
+                        log.error("Async background generation failed for interview id {}", finalInterviewId, e);
+                        Interview inv = interviewRepository.findById(finalInterviewId).orElse(null);
+                        if (inv != null) {
+                            inv.setStatus("FAILED");
+                            interviewRepository.save(inv);
+                        }
+                    }
+                });
+            }
 
             return InterviewResponseDto.builder()
                     .id(interview.getId())
@@ -125,15 +163,49 @@ public class InterviewService {
             interview.setStatus("FEEDBACK_PROCESSING");
             interviewRepository.save(interview);
 
-            // Publish Kafka event for asynchronous feedback evaluation
-            InterviewFeedbackEvent event = InterviewFeedbackEvent.builder()
-                    .interviewId(interview.getId())
-                    .questionsJson(interview.getQuestions())
-                    .answerText(answerTextBuilder.toString())
-                    .answersJson(answersJson)
-                    .build();
+            if (kafkaEnabled && kafkaProducerService != null) {
+                // Publish Kafka event for asynchronous feedback evaluation
+                InterviewFeedbackEvent event = InterviewFeedbackEvent.builder()
+                        .interviewId(interview.getId())
+                        .questionsJson(interview.getQuestions())
+                        .answerText(answerTextBuilder.toString())
+                        .answersJson(answersJson)
+                        .build();
 
-            kafkaProducerService.sendInterviewFeedbackEvent(event);
+                kafkaProducerService.sendInterviewFeedbackEvent(event);
+            } else {
+                // Async fallback if Kafka is not active
+                final Long finalInterviewId = interview.getId();
+                final String questionsJson = interview.getQuestions();
+                final String answerText = answerTextBuilder.toString();
+                final String finalAnswersJson = answersJson;
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        String feedbackJsonStr = geminiService.generateFeedback(questionsJson, answerText);
+                        int overallScore = 0;
+                        try {
+                            JsonNode feedbackNode = objectMapper.readTree(feedbackJsonStr);
+                            overallScore = feedbackNode.path("overall_score").asInt(0);
+                        } catch (Exception ignored) {}
+
+                        Interview inv = interviewRepository.findById(finalInterviewId).orElse(null);
+                        if (inv != null) {
+                            inv.setAnswers(finalAnswersJson);
+                            inv.setFeedback(feedbackJsonStr);
+                            inv.setScore(overallScore);
+                            inv.setStatus("COMPLETED");
+                            interviewRepository.save(inv);
+                        }
+                    } catch (Exception e) {
+                        log.error("Async background feedback calculation failed for interview id {}", finalInterviewId, e);
+                        Interview inv = interviewRepository.findById(finalInterviewId).orElse(null);
+                        if (inv != null) {
+                            inv.setStatus("FAILED");
+                            interviewRepository.save(inv);
+                        }
+                    }
+                });
+            }
 
             Map<String, String> response = new HashMap<>();
             response.put("message", "Submitted successfully");
@@ -224,5 +296,32 @@ public class InterviewService {
         } catch (Exception e) {
             return Collections.emptyList();
         }
+    }
+
+    private List<Map<String, String>> parseQuestionsFromText(String text) {
+        List<Map<String, String>> questions = new ArrayList<>();
+        if (text == null) return questions;
+        String[] lines = text.split("\n");
+        for (String line : lines) {
+            line = line.trim();
+            if (line.isEmpty()) continue;
+            boolean startsWithNumber = false;
+            for (int i = 1; i <= 10; i++) {
+                if (line.startsWith(i + ".")) {
+                    startsWithNumber = true;
+                    break;
+                }
+            }
+            if (!startsWithNumber) continue;
+            String[] parts = line.split("\\.", 2);
+            if (parts.length > 1) {
+                String questionContent = parts[1].trim();
+                Map<String, String> qMap = new HashMap<>();
+                qMap.put("id", "q" + (questions.size() + 1));
+                qMap.put("question", questionContent);
+                questions.add(qMap);
+            }
+        }
+        return questions;
     }
 }
