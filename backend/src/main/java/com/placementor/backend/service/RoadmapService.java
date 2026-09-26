@@ -49,15 +49,12 @@ public class RoadmapService {
         Roadmap roadmap = roadmapRepository.findTopByUserIdOrderByIdDesc(userId).orElse(null);
 
         if (roadmap == null) {
-            Profile profile = profileRepository.findTopByUserIdOrderByIdDesc(userId).orElse(null);
-            if (profile != null && profile.getTargetRole() != null && !profile.getTargetRole().isBlank()) {
-                try {
-                    return generateRoadmap(userId);
-                } catch (Exception e) {
-                    log.error("Auto generation of roadmap in getRoadmap failed for userId {}", userId, e);
-                }
+            try {
+                return generateRoadmap(userId);
+            } catch (Exception e) {
+                log.error("Auto generation of roadmap in getRoadmap failed for userId {}", userId, e);
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Roadmap not found");
             }
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Roadmap not found");
         }
 
         try {
@@ -80,10 +77,24 @@ public class RoadmapService {
 
     @Transactional
     public Map<String, Object> generateRoadmap(Long userId) {
-        Profile profile = profileRepository.findTopByUserIdOrderByIdDesc(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profile not found"));
+        Profile profile = profileRepository.findTopByUserIdOrderByIdDesc(userId).orElse(null);
 
-        String rawRole = profile.getTargetRole() != null ? profile.getTargetRole().trim() : "Software Development Engineer (SDE)";
+        String rawRole;
+        if (profile != null && profile.getTargetRole() != null && !profile.getTargetRole().isBlank()) {
+            rawRole = profile.getTargetRole().trim();
+        } else {
+            rawRole = "Software Development Engineer (SDE)";
+            if (profile == null) {
+                profile = Profile.builder()
+                        .userId(userId)
+                        .targetRole(rawRole)
+                        .domain("Computer Science")
+                        .currentLevel("3rd Year")
+                        .build();
+                profileRepository.save(profile);
+            }
+        }
+
         String roleLower = rawRole.toLowerCase();
         String resourcePath;
 

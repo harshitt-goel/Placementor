@@ -98,7 +98,7 @@ export default function ProfilePage() {
     queryFn: getProfile,
   });
 
-  const isNew = !profile;
+  const isNew = !profile || !profile.id || !profile.target_role;
 
   const {
     register,
@@ -276,7 +276,7 @@ export default function ProfilePage() {
         {/* Submit */}
         <button
           type="submit"
-          disabled={isPending || (!isDirty && !isNew)}
+          disabled={isPending}
           className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium rounded-xl py-3 text-sm transition"
         >
           {isPending
