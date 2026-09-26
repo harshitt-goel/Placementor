@@ -50,8 +50,10 @@ public class InterviewService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Role is required");
         }
 
-        Resume resume = resumeRepository.findTopByUserIdOrderByIdDesc(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resume not found"));
+        Resume resume = resumeRepository.findTopByUserIdOrderByIdDesc(userId).orElse(null);
+        String resumeText = (resume != null && resume.getExtractedText() != null && !resume.getExtractedText().isBlank())
+                ? resume.getExtractedText()
+                : "Target Role: " + role + ". No resume uploaded yet.";
 
         try {
             Interview interview = Interview.builder()
@@ -67,7 +69,7 @@ public class InterviewService {
                 // Publish Kafka event for asynchronous question generation
                 InterviewQuestionEvent event = InterviewQuestionEvent.builder()
                         .interviewId(interview.getId())
-                        .resumeText(resume.getExtractedText())
+                        .resumeText(resumeText)
                         .role(role)
                         .build();
 
@@ -75,11 +77,14 @@ public class InterviewService {
             } else {
                 // Async fallback if Kafka is not active
                 final Long finalInterviewId = interview.getId();
-                final String resumeText = resume.getExtractedText();
+                final String finalResumeText = resumeText;
                 CompletableFuture.runAsync(() -> {
                     try {
-                        String rawQuestions = geminiService.generateInterviewQuestions(resumeText, role);
+                        String rawQuestions = geminiService.generateInterviewQuestions(finalResumeText, role);
                         List<Map<String, String>> parsed = parseQuestionsFromText(rawQuestions);
+                        if (parsed.isEmpty()) {
+                            parsed = parseQuestionsFromText(geminiService.generateInterviewQuestions(null, role));
+                        }
                         String questionsJson = objectMapper.writeValueAsString(parsed);
                         Interview inv = interviewRepository.findById(finalInterviewId).orElse(null);
                         if (inv != null) {
