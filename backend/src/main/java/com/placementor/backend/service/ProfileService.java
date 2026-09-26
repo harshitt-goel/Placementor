@@ -3,7 +3,8 @@ package com.placementor.backend.service;
 import com.placementor.backend.dto.ProfileDto;
 import com.placementor.backend.entity.Profile;
 import com.placementor.backend.repository.ProfileRepository;
-import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
@@ -11,12 +12,14 @@ import org.springframework.stereotype.Service;
 public class ProfileService {
 
     private final ProfileRepository profileRepository;
+    private final CacheManager cacheManager;
 
-    public ProfileService(ProfileRepository profileRepository) {
+    public ProfileService(ProfileRepository profileRepository, @Autowired(required = false) CacheManager cacheManager) {
         this.profileRepository = profileRepository;
+        this.cacheManager = cacheManager;
     }
 
-    @Cacheable(value = "profiles", key = "#userId")
+    @Cacheable(value = "profiles", key = "#userId", unless = "#result == null")
     public ProfileDto getProfile(Long userId) {
         Profile profile = profileRepository.findTopByUserIdOrderByIdDesc(userId).orElse(null);
         if (profile == null) {
@@ -25,12 +28,10 @@ public class ProfileService {
         return mapToDto(profile);
     }
 
-    @CacheEvict(value = "profiles", key = "#userId")
     public ProfileDto createProfile(Long userId, ProfileDto dto) {
         return saveOrUpdateProfile(userId, dto);
     }
 
-    @CacheEvict(value = "profiles", key = "#userId")
     public ProfileDto updateProfile(Long userId, ProfileDto dto) {
         return saveOrUpdateProfile(userId, dto);
     }
@@ -52,6 +53,11 @@ public class ProfileService {
         profile.setTargetCompany(dto.getTargetCompany());
 
         Profile saved = profileRepository.save(profile);
+
+        if (cacheManager != null && cacheManager.getCache("profiles") != null) {
+            cacheManager.getCache("profiles").evict(userId);
+        }
+
         return mapToDto(saved);
     }
 

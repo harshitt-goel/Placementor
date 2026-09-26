@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -103,10 +103,10 @@ export default function ProfilePage() {
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors, isDirty },
   } = useForm({
     resolver: zodResolver(schema),
-
     values: profile
       ? {
           target_role: profile.target_role ?? profile.targetRole ?? "",
@@ -120,21 +120,35 @@ export default function ProfilePage() {
       : undefined,
   });
 
-  // Pre-fill form when profile loads
+  useEffect(() => {
+    if (profile) {
+      reset({
+        target_role: profile.target_role ?? profile.targetRole ?? "",
+        domain: profile.domain ?? "",
+        current_level: profile.current_level ?? profile.currentLevel ?? "",
+        target_company: profile.target_company ?? profile.targetCompany ?? "",
+        github_url: profile.github_url ?? profile.githubUrl ?? "",
+        leetcode_url: profile.leetcode_url ?? profile.leetcodeUrl ?? "",
+        codeforces_url: profile.codeforces_url ?? profile.codeforcesUrl ?? "",
+      });
+    }
+  }, [profile, reset]);
 
   const { mutate, isPending } = useMutation({
     mutationFn: (data) => (isNew ? createProfile(data) : updateProfile(data)),
-    onSuccess: () => {
+    onSuccess: (savedData) => {
+      if (savedData) {
+        queryClient.setQueryData(["profile"], savedData);
+      }
       queryClient.invalidateQueries({ queryKey: ["profile"] });
       queryClient.invalidateQueries({ queryKey: ["roadmap"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+      setTimeout(() => setSaved(false), 4000);
     },
   });
 
   const onSubmit = (data) => {
-    // Strip empty optional strings
     const payload = {
       target_role: data.target_role,
       domain: data.domain,

@@ -9,7 +9,8 @@ import com.placementor.backend.repository.ProgressRepository;
 import com.placementor.backend.repository.RoadmapRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
@@ -29,15 +30,21 @@ public class RoadmapService {
     private final ProfileRepository profileRepository;
     private final ProgressRepository progressRepository;
     private final ObjectMapper objectMapper;
+    private final CacheManager cacheManager;
 
-    public RoadmapService(RoadmapRepository roadmapRepository, ProfileRepository profileRepository, ProgressRepository progressRepository, ObjectMapper objectMapper) {
+    public RoadmapService(RoadmapRepository roadmapRepository,
+                          ProfileRepository profileRepository,
+                          ProgressRepository progressRepository,
+                          ObjectMapper objectMapper,
+                          @Autowired(required = false) CacheManager cacheManager) {
         this.roadmapRepository = roadmapRepository;
         this.profileRepository = profileRepository;
         this.progressRepository = progressRepository;
         this.objectMapper = objectMapper;
+        this.cacheManager = cacheManager;
     }
 
-    @Cacheable(value = "roadmaps", key = "#userId")
+    @Cacheable(value = "roadmaps", key = "#userId", unless = "#result == null")
     public Map<String, Object> getRoadmap(Long userId) {
         Roadmap roadmap = roadmapRepository.findTopByUserIdOrderByIdDesc(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Roadmap not found"));
@@ -61,7 +68,6 @@ public class RoadmapService {
     }
 
     @Transactional
-    @CacheEvict(value = "roadmaps", key = "#userId")
     public Map<String, Object> generateRoadmap(Long userId) {
         Profile profile = profileRepository.findTopByUserIdOrderByIdDesc(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profile not found"));
@@ -93,6 +99,10 @@ public class RoadmapService {
                     .build();
 
             roadmapRepository.save(newRoadmap);
+
+            if (cacheManager != null && cacheManager.getCache("roadmaps") != null) {
+                cacheManager.getCache("roadmaps").evict(userId);
+            }
 
             return formatRoadmap(roadmapJson);
         } catch (Exception e) {
