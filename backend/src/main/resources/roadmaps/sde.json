@@ -1,0 +1,55 @@
+{
+  "role": "Software Development Engineer (SDE)",
+  "phases": [
+    {
+      "phase": "Phase 1 - Programming Fundamentals",
+      "tasks": [
+        "Master Java or C++",
+        "Learn OOP Concepts",
+        "Understand Time & Space Complexity",
+        "Learn Recursion",
+        "Solve 50 Basic DSA Problems"
+      ]
+    },
+    {
+      "phase": "Phase 2 - Data Structures",
+      "tasks": [
+        "Arrays & Strings",
+        "Linked Lists",
+        "Stacks & Queues",
+        "Trees & BST",
+        "Heaps & Hashing"
+      ]
+    },
+    {
+      "phase": "Phase 3 - Algorithms",
+      "tasks": [
+        "Binary Search",
+        "Sliding Window",
+        "Greedy Algorithms",
+        "Dynamic Programming",
+        "Graph Algorithms"
+      ]
+    },
+    {
+      "phase": "Phase 4 - Development",
+      "tasks": [
+        "Learn Git & GitHub",
+        "Build REST APIs",
+        "Learn SQL Databases",
+        "Build Full Stack Project",
+        "Deploy Applications"
+      ]
+    },
+    {
+      "phase": "Phase 5 - Placement Preparation",
+      "tasks": [
+        "Solve 200+ LeetCode Problems",
+        "Practice Mock Interviews",
+        "Prepare Core CS Subjects",
+        "Optimize Resume",
+        "Apply for Internships & Placements"
+      ]
+    }
+  ]
+}

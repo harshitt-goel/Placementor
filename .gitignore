@@ -2,7 +2,12 @@
 frontend/node_modules
 frontend/.next
 
-# backend
+# backend java & maven
+backend/target/
+target/
+*.class
+*.jar
+backend/uploads
 backend/venv
 backend/__pycache__
 
@@ -10,11 +15,10 @@ backend/__pycache__
 .env
 .env.local
 
-# uploads
-backend/uploads
-
 # python
 *.pyc
 
-# vscode
+# vscode / IDE
 .vscode
+.idea
+*.iml
