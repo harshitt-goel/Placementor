@@ -1,11 +1,11 @@
 package com.placementor.backend.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
-@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ProfileDto {
+    @JsonProperty("id")
     private Long id;
 
     @JsonProperty("user_id")
@@ -14,6 +14,7 @@ public class ProfileDto {
     @JsonProperty("target_role")
     private String targetRole;
 
+    @JsonProperty("domain")
     private String domain;
 
     @JsonProperty("current_level")
@@ -52,42 +53,28 @@ public class ProfileDto {
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
-    @JsonProperty("user_id")
     public Long getUserId() { return userId; }
-    @JsonProperty("user_id")
     public void setUserId(Long userId) { this.userId = userId; }
 
-    @JsonProperty("target_role")
     public String getTargetRole() { return targetRole; }
-    @JsonProperty("target_role")
     public void setTargetRole(String targetRole) { this.targetRole = targetRole; }
 
     public String getDomain() { return domain; }
     public void setDomain(String domain) { this.domain = domain; }
 
-    @JsonProperty("current_level")
     public String getCurrentLevel() { return currentLevel; }
-    @JsonProperty("current_level")
     public void setCurrentLevel(String currentLevel) { this.currentLevel = currentLevel; }
 
-    @JsonProperty("github_url")
     public String getGithubUrl() { return githubUrl; }
-    @JsonProperty("github_url")
     public void setGithubUrl(String githubUrl) { this.githubUrl = githubUrl; }
 
-    @JsonProperty("leetcode_url")
     public String getLeetcodeUrl() { return leetcodeUrl; }
-    @JsonProperty("leetcode_url")
     public void setLeetcodeUrl(String leetcodeUrl) { this.leetcodeUrl = leetcodeUrl; }
 
-    @JsonProperty("codeforces_url")
     public String getCodeforcesUrl() { return codeforcesUrl; }
-    @JsonProperty("codeforces_url")
     public void setCodeforcesUrl(String codeforcesUrl) { this.codeforcesUrl = codeforcesUrl; }
 
-    @JsonProperty("target_company")
     public String getTargetCompany() { return targetCompany; }
-    @JsonProperty("target_company")
     public void setTargetCompany(String targetCompany) { this.targetCompany = targetCompany; }
 
     public static class ProfileDtoBuilder {

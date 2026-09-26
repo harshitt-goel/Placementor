@@ -20,7 +20,9 @@ export const getCurrentUser = async () => {
 // ─── Profile ─────────────────────────────────────────────────────────────────
 
 export const getProfile = async () => {
-  const res = await api.get("/profile/");
+  const res = await api.get(`/profile/?t=${Date.now()}`, {
+    headers: { "Cache-Control": "no-cache" },
+  });
   return res.data;
 };
 

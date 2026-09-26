@@ -3,28 +3,29 @@ package com.placementor.backend.service;
 import com.placementor.backend.dto.ProfileDto;
 import com.placementor.backend.entity.Profile;
 import com.placementor.backend.repository.ProfileRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.CacheManager;
-import org.springframework.cache.annotation.Cacheable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class ProfileService {
 
-    private final ProfileRepository profileRepository;
-    private final CacheManager cacheManager;
+    private static final Logger log = LoggerFactory.getLogger(ProfileService.class);
 
-    public ProfileService(ProfileRepository profileRepository, @Autowired(required = false) CacheManager cacheManager) {
+    private final ProfileRepository profileRepository;
+
+    public ProfileService(ProfileRepository profileRepository) {
         this.profileRepository = profileRepository;
-        this.cacheManager = cacheManager;
     }
 
-    @Cacheable(value = "profiles", key = "#userId", unless = "#result == null")
     public ProfileDto getProfile(Long userId) {
+        log.info("Fetching profile for userId: {}", userId);
         Profile profile = profileRepository.findTopByUserIdOrderByIdDesc(userId).orElse(null);
         if (profile == null) {
+            log.info("No profile found in DB for userId: {}", userId);
             return null;
         }
+        log.info("Found profile id {} for userId {}: role={}, domain={}", profile.getId(), userId, profile.getTargetRole(), profile.getDomain());
         return mapToDto(profile);
     }
 
@@ -37,6 +38,7 @@ public class ProfileService {
     }
 
     private ProfileDto saveOrUpdateProfile(Long userId, ProfileDto dto) {
+        log.info("Saving/Updating profile for userId: {}, role={}, domain={}", userId, dto.getTargetRole(), dto.getDomain());
         Profile profile = profileRepository.findTopByUserIdOrderByIdDesc(userId).orElse(null);
         if (profile == null) {
             profile = Profile.builder()
@@ -53,10 +55,7 @@ public class ProfileService {
         profile.setTargetCompany(dto.getTargetCompany());
 
         Profile saved = profileRepository.save(profile);
-
-        if (cacheManager != null && cacheManager.getCache("profiles") != null) {
-            cacheManager.getCache("profiles").evict(userId);
-        }
+        log.info("Successfully saved profile id {} for userId {}", saved.getId(), userId);
 
         return mapToDto(saved);
     }
