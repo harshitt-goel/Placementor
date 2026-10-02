@@ -5,7 +5,11 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getProfile, createProfile, updateProfile } from "@/lib/api/services";
+import {
+  getProfile,
+  createProfile,
+  updateProfile,
+} from "@/lib/api/services";
 
 const schema = z.object({
   target_role: z.string().min(2, "Required"),
@@ -76,9 +80,17 @@ const companies = [
 function Field({ label, error, children }) {
   return (
     <div>
-      <label className="block text-sm text-gray-400 mb-1.5">{label}</label>
+      <label className="block text-sm text-gray-400 mb-1.5">
+        {label}
+      </label>
+
       {children}
-      {error && <p className="text-red-400 text-xs mt-1">{error}</p>}
+
+      {error && (
+        <p className="text-red-400 text-xs mt-1">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -93,13 +105,32 @@ export default function ProfilePage() {
   const queryClient = useQueryClient();
   const [saved, setSaved] = useState(false);
 
-  const { data: profile, isLoading } = useQuery({
+  const {
+    data: profile,
+    isLoading,
+  } = useQuery({
     queryKey: ["profile"],
     queryFn: getProfile,
   });
 
-  const isNew = !profile || !profile.id || !profile.target_role;
+  /*
+   * A profile is considered new when the backend has not returned
+   * an existing profile with an id and target role.
+   */
+  const isNew =
+    !profile ||
+    !profile.id ||
+    !profile.target_role;
 
+  /*
+   * IMPORTANT:
+   *
+   * Do NOT use `values: profile` here.
+   *
+   * React Hook Form should own the form values after the profile
+   * has been loaded. The backend profile is loaded into the form
+   * using reset() below.
+   */
   const {
     register,
     handleSubmit,
@@ -107,57 +138,137 @@ export default function ProfilePage() {
     formState: { errors, isDirty },
   } = useForm({
     resolver: zodResolver(schema),
-    values: profile
-      ? {
-          target_role: profile.target_role ?? profile.targetRole ?? "",
-          domain: profile.domain ?? "",
-          current_level: profile.current_level ?? profile.currentLevel ?? "",
-          target_company: profile.target_company ?? profile.targetCompany ?? "",
-          github_url: profile.github_url ?? profile.githubUrl ?? "",
-          leetcode_url: profile.leetcode_url ?? profile.leetcodeUrl ?? "",
-          codeforces_url: profile.codeforces_url ?? profile.codeforcesUrl ?? "",
-        }
-      : undefined,
+
+    defaultValues: {
+      target_role: "",
+      domain: "",
+      current_level: "",
+      target_company: "",
+      github_url: "",
+      leetcode_url: "",
+      codeforces_url: "",
+    },
   });
 
+  /*
+   * Load the profile returned by the backend into React Hook Form.
+   *
+   * After this reset(), the user can freely edit the form and
+   * React Hook Form will keep those edited values.
+   */
   useEffect(() => {
-    if (profile) {
+    if (
+      profile &&
+      (profile.id || profile.target_role || profile.targetRole)
+    ) {
       reset({
-        target_role: profile.target_role ?? profile.targetRole ?? "",
-        domain: profile.domain ?? "",
-        current_level: profile.current_level ?? profile.currentLevel ?? "",
-        target_company: profile.target_company ?? profile.targetCompany ?? "",
-        github_url: profile.github_url ?? profile.githubUrl ?? "",
-        leetcode_url: profile.leetcode_url ?? profile.leetcodeUrl ?? "",
-        codeforces_url: profile.codeforces_url ?? profile.codeforcesUrl ?? "",
+        target_role:
+          profile.target_role ??
+          profile.targetRole ??
+          "",
+
+        domain:
+          profile.domain ??
+          "",
+
+        current_level:
+          profile.current_level ??
+          profile.currentLevel ??
+          "",
+
+        target_company:
+          profile.target_company ??
+          profile.targetCompany ??
+          "",
+
+        github_url:
+          profile.github_url ??
+          profile.githubUrl ??
+          "",
+
+        leetcode_url:
+          profile.leetcode_url ??
+          profile.leetcodeUrl ??
+          "",
+
+        codeforces_url:
+          profile.codeforces_url ??
+          profile.codeforcesUrl ??
+          "",
       });
     }
   }, [profile, reset]);
 
-  const { mutate, isPending } = useMutation({
-    mutationFn: (data) => (isNew ? createProfile(data) : updateProfile(data)),
+  const {
+    mutate,
+    isPending,
+  } = useMutation({
+    mutationFn: (data) =>
+      isNew
+        ? createProfile(data)
+        : updateProfile(data),
+
     onSuccess: (savedData) => {
+      /*
+       * Immediately update React Query's cached profile
+       * with the response returned by the backend.
+       */
       if (savedData) {
-        queryClient.setQueryData(["profile"], savedData);
+        queryClient.setQueryData(
+          ["profile"],
+          savedData
+        );
       }
-      queryClient.invalidateQueries({ queryKey: ["profile"] });
-      queryClient.invalidateQueries({ queryKey: ["roadmap"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+
+      /*
+       * Re-fetch the profile from the backend to make sure
+       * the frontend has the latest persisted data.
+       */
+      queryClient.invalidateQueries({
+        queryKey: ["profile"],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ["roadmap"],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ["dashboard"],
+      });
+
       setSaved(true);
-      setTimeout(() => setSaved(false), 4000);
+
+      setTimeout(() => {
+        setSaved(false);
+      }, 4000);
     },
   });
 
   const onSubmit = (data) => {
+    /*
+     * These values now come directly from React Hook Form,
+     * not from the old React Query profile object.
+     */
     const payload = {
       target_role: data.target_role,
       domain: data.domain,
       current_level: data.current_level,
-      target_company: data.target_company || undefined,
-      github_url: data.github_url || undefined,
-      leetcode_url: data.leetcode_url || undefined,
-      codeforces_url: data.codeforces_url || undefined,
+
+      target_company:
+        data.target_company || undefined,
+
+      github_url:
+        data.github_url || undefined,
+
+      leetcode_url:
+        data.leetcode_url || undefined,
+
+      codeforces_url:
+        data.codeforces_url || undefined,
     };
+
+    console.log("Profile update payload:", payload);
+
     mutate(payload);
   };
 
@@ -165,7 +276,10 @@ export default function ProfilePage() {
     return (
       <div className="max-w-2xl mx-auto space-y-4 animate-pulse">
         {[...Array(6)].map((_, i) => (
-          <div key={i} className="h-12 bg-gray-800 rounded-lg" />
+          <div
+            key={i}
+            className="h-12 bg-gray-800 rounded-lg"
+          />
         ))}
       </div>
     );
@@ -175,7 +289,10 @@ export default function ProfilePage() {
     <div className="max-w-2xl mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-white">Your profile</h1>
+        <h1 className="text-2xl font-semibold text-white">
+          Your profile
+        </h1>
+
         <p className="text-gray-400 text-sm mt-1">
           This drives your personalized roadmap and AI interview questions.
         </p>
@@ -189,51 +306,102 @@ export default function ProfilePage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="space-y-5"
+      >
         {/* Card: Placement goals */}
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-4">
           <h2 className="text-sm font-medium text-white mb-1">
             Placement goals
           </h2>
 
-          <Field label="Target role *" error={errors.target_role?.message}>
-            <select {...register("target_role")} className={selectCls}>
-              <option value="">Select a role</option>
+          <Field
+            label="Target role *"
+            error={errors.target_role?.message}
+          >
+            <select
+              {...register("target_role")}
+              className={selectCls}
+            >
+              <option value="">
+                Select a role
+              </option>
+
               {roles.map((r) => (
-                <option key={r} value={r}>
+                <option
+                  key={r}
+                  value={r}
+                >
                   {r}
                 </option>
               ))}
             </select>
           </Field>
 
-          <Field label="Domain / Branch *" error={errors.domain?.message}>
-            <select {...register("domain")} className={selectCls}>
-              <option value="">Select your domain</option>
+          <Field
+            label="Domain / Branch *"
+            error={errors.domain?.message}
+          >
+            <select
+              {...register("domain")}
+              className={selectCls}
+            >
+              <option value="">
+                Select your domain
+              </option>
+
               {domains.map((d) => (
-                <option key={d} value={d}>
+                <option
+                  key={d}
+                  value={d}
+                >
                   {d}
                 </option>
               ))}
             </select>
           </Field>
 
-          <Field label="Current level *" error={errors.current_level?.message}>
-            <select {...register("current_level")} className={selectCls}>
-              <option value="">Select your year</option>
+          <Field
+            label="Current level *"
+            error={errors.current_level?.message}
+          >
+            <select
+              {...register("current_level")}
+              className={selectCls}
+            >
+              <option value="">
+                Select your year
+              </option>
+
               {levels.map((l) => (
-                <option key={l} value={l}>
+                <option
+                  key={l}
+                  value={l}
+                >
                   {l}
                 </option>
               ))}
             </select>
           </Field>
 
-          <Field label="Target company" error={errors.target_company?.message}>
-            <select {...register("target_company")} className={selectCls}>
-              <option value="">Select a company (optional)</option>
+          <Field
+            label="Target company"
+            error={errors.target_company?.message}
+          >
+            <select
+              {...register("target_company")}
+              className={selectCls}
+            >
+              <option value="">
+                Select a company (optional)
+              </option>
+
               {companies.map((c) => (
-                <option key={c} value={c}>
+                <option
+                  key={c}
+                  value={c}
+                >
                   {c}
                 </option>
               ))}
@@ -245,10 +413,15 @@ export default function ProfilePage() {
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-4">
           <h2 className="text-sm font-medium text-white mb-1">
             Coding profiles{" "}
-            <span className="text-gray-600 font-normal">(optional)</span>
+            <span className="text-gray-600 font-normal">
+              (optional)
+            </span>
           </h2>
 
-          <Field label="GitHub URL" error={errors.github_url?.message}>
+          <Field
+            label="GitHub URL"
+            error={errors.github_url?.message}
+          >
             <input
               {...register("github_url")}
               placeholder="https://github.com/username"
@@ -256,7 +429,10 @@ export default function ProfilePage() {
             />
           </Field>
 
-          <Field label="LeetCode URL" error={errors.leetcode_url?.message}>
+          <Field
+            label="LeetCode URL"
+            error={errors.leetcode_url?.message}
+          >
             <input
               {...register("leetcode_url")}
               placeholder="https://leetcode.com/username"
@@ -264,7 +440,10 @@ export default function ProfilePage() {
             />
           </Field>
 
-          <Field label="Codeforces URL" error={errors.codeforces_url?.message}>
+          <Field
+            label="Codeforces URL"
+            error={errors.codeforces_url?.message}
+          >
             <input
               {...register("codeforces_url")}
               placeholder="https://codeforces.com/profile/username"

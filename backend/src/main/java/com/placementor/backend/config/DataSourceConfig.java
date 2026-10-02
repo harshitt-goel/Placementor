@@ -67,7 +67,7 @@ public class DataSourceConfig {
         }
 
         if (url == null || url.isBlank()) {
-            url = "jdbc:postgresql://localhost:5432/placementor_db";
+            url = "jdbc:postgresql://localhost:5433/placementor_db";
             username = "postgres";
             password = "postgres";
             log.info("Using default local PostgreSQL datasource URL: {}", url);

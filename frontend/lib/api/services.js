@@ -23,6 +23,7 @@ export const getProfile = async () => {
   const res = await api.get(`/profile/?t=${Date.now()}`, {
     headers: { "Cache-Control": "no-cache" },
   });
+  if (!res.data || !res.data.id) return null;
   return res.data;
 };
 
